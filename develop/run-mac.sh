@@ -13,7 +13,7 @@ SERVER_DIR="${DS_ROOT}/server"
 EXAMPLE_DIR="${DS_ROOT}/document-server-integration/web/documentserver-example/nodejs"
 
 CORE_DIR="${EO_CORE_DIR:-/Users/max/Projects/Euro-Office/macos-stage/converter}"
-EDITORS_DIR="${EO_EDITORS_DIR:-/Users/max/Projects/Euro-Office/macos-stage/editors}"
+EDITORS_DIR="${EO_EDITORS_DIR:-/Users/max/Projects/Euro-Office/ds-editors}"
 DICT_DIR="${EO_DICT_DIR:-/Users/max/Projects/Euro-Office/DesktopEditors/dictionaries}"
 
 if [ ! -x "${CORE_DIR}/x2t" ]; then
@@ -31,13 +31,22 @@ if [ ! -e "${STAGE_PARENT}/dictionaries" ] && [ -d "${DICT_DIR}" ]; then
     ln -sfn "${DICT_DIR}" "${STAGE_PARENT}/dictionaries"
 fi
 
+# Ensure api.js exists (deb packages ship api.js.tpl)
+if [ ! -f "${EDITORS_DIR}/web-apps/apps/api/documents/api.js" ] && [ -f "${EDITORS_DIR}/web-apps/apps/api/documents/api.js.tpl" ]; then
+    cp "${EDITORS_DIR}/web-apps/apps/api/documents/api.js.tpl" "${EDITORS_DIR}/web-apps/apps/api/documents/api.js"
+fi
+
 # Generate web fonts once if missing and allfontsgen is available
-if [ ! -f "${EDITORS_DIR}/fonts/000" ] && [ -x "${STAGE_PARENT}/stage-generators/allfontsgen" ] && [ -d "${STAGE_PARENT}/fonts" ]; then
+FONTS_INPUT="${EDITORS_DIR}/core-fonts"
+if [ ! -d "${FONTS_INPUT}" ]; then
+    FONTS_INPUT="${STAGE_PARENT}/fonts"
+fi
+if [ ! -f "${EDITORS_DIR}/fonts/000" ] && [ -x "${STAGE_PARENT}/stage-generators/allfontsgen" ] && [ -d "${FONTS_INPUT}" ]; then
     echo "==> Generating web fonts with allfontsgen"
     mkdir -p "${EDITORS_DIR}/fonts"
     DYLD_LIBRARY_PATH="${CORE_DIR}:${DYLD_LIBRARY_PATH:-}" \
         "${STAGE_PARENT}/stage-generators/allfontsgen" \
-        --input="${STAGE_PARENT}/fonts" \
+        --input="${FONTS_INPUT}" \
         --allfonts-web="${EDITORS_DIR}/sdkjs/common/AllFonts.js" \
         --allfonts="${CORE_DIR}/AllFonts.js" \
         --images="${EDITORS_DIR}/sdkjs/common/Images" \
@@ -172,6 +181,14 @@ wait_port 127.0.0.1 "${EO_AMQP_PORT:-5672}" "AMQP broker"
 export NODE_ENV="local-mac"
 export NODE_CONFIG_DIR="${CONFIG_DIR}"
 export DYLD_LIBRARY_PATH="${CORE_DIR}:${DYLD_LIBRARY_PATH:-}"
+
+# Match DocService's reported version/build to the served sdkjs bundle to avoid reload loops
+if [ -f "${EDITORS_DIR}/sdkjs/word/sdk-all-min.js" ]; then
+    SDK_VER=$(tail -c 512 "${EDITORS_DIR}/sdkjs/word/sdk-all-min.js" | sed -n 's/.*g_cProductVersion="\([^"]*\)".*/\1/p')
+    SDK_BLD=$(tail -c 512 "${EDITORS_DIR}/sdkjs/word/sdk-all-min.js" | sed -n 's/.*g_cBuildNumber="\([^"]*\)".*/\1/p')
+    if [ -n "${SDK_VER}" ]; then export EO_BUILD_VERSION="${SDK_VER}"; fi
+    if [ -n "${SDK_BLD}" ]; then export EO_BUILD_NUMBER="${SDK_BLD}"; fi
+fi
 
 echo "==> Starting FileConverter"
 (cd "${SERVER_DIR}/FileConverter" && node sources/convertermaster.js) &
