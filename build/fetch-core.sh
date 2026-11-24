@@ -12,10 +12,12 @@
 set -euo pipefail
 
 here="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-case "$(uname -m)" in
-    x86_64)  platform=linux-amd64 ;;
-    aarch64) platform=linux-arm64 ;;
-    *)       echo "unsupported architecture $(uname -m)" >&2; exit 1 ;;
+case "$(uname -s)-$(uname -m)" in
+    Linux-x86_64)  platform=linux-amd64 ;;
+    Linux-aarch64) platform=linux-arm64 ;;
+    Darwin-x86_64) platform=macos-amd64 ;;
+    Darwin-arm64)  platform=macos-arm64 ;;
+    *)             echo "unsupported platform $(uname -s)-$(uname -m)" >&2; exit 1 ;;
 esac
 
 status=0

@@ -1,6 +1,6 @@
 [submodule "server"]
 	path = server
-	url = https://github.com/Euro-Office/server.git
+	url = https://github.com/maxwell1500/server.git
 [submodule "web-apps"]
 	path = web-apps
 	url = https://github.com/Euro-Office/web-apps.git
@@ -12,7 +12,7 @@
 	url = https://github.com/Euro-Office/core-fonts.git
 [submodule "core"]
 	path = core
-	url = https://github.com/Euro-Office/core.git
+	url = https://github.com/maxwell1500/core.git
 [submodule "document-server-integration"]
 	path = document-server-integration
 	url = https://github.com/Euro-Office/document-server-integration.git
